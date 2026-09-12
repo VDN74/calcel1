@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Блок-1 расход электроэнергии</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 400px;
+      margin: 30px auto;
+      padding: 10px;
+      background: #f3f3f3;
+    }
+    input {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px 5px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      border: 1px solid #b6b6b6;
+      border-radius: 4px;
+    }
+    /* Глянцевая металлическая кнопка с бликом */
+    button {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      background: linear-gradient(180deg,
+        #f5f6fa 0%,
+        #e3e6eb 9%,
+        #c7c7c7 30%,
+        #b3b7bb 75%,
+        #dddddd 100%);
+      color: #353535;
+      border: 1.5px solid #b4b4b4;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      font-weight: bold;
+      letter-spacing: 0.04em;
+      position: relative;
+      box-shadow:
+        0 4px 18px 0 #bdbdbd80,
+        0 1.5px 0 #f8f8f8 inset,
+        0 2px 8px #f7f7fa inset;
+      text-shadow: 0 1px 0 #fff, 0 0.5px 0 #cacaca;
+      overflow: hidden;
+      transition: transform 0.09s, box-shadow 0.09s, background 0.13s;
+    }
+    button::before {
+      /* "Glass" блик сверху */
+      content: '';
+      display: block;
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 48%;
+      border-radius: 8px 8px 35px 35px / 35px 35px 15px 15px;
+      background: linear-gradient(
+        180deg,
+        rgba(255,255,255,0.83) 0%,
+        rgba(255,255,255,0.55) 35%,
+        rgba(255,255,255,0.07) 82%,
+        rgba(255,255,255,0) 100%
+      );
+      pointer-events: none;
+      z-index: 2;
+    }
+    button:active {
+      background: linear-gradient(180deg,
+        #f2f2f2 0%,
+        #cccccc 34%,
+        #bcbcbc 100%);
+      box-shadow:
+        0 1.5px 3px 0 #bbbbbb7a,
+        0 1px 0 #ececec inset;
+      color: #222;
+      transform: translateY(2px) scale(0.98);
+    }
+
+    #result {
+      margin-top: 9px;
+      padding: 12px;
+      background: #fff;
+      font-size: 1.1rem;
+      text-align: center;
+      min-height: 32px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    /* Пунктирная линия между парами, с уменьшенными (7px) отступами сверху и снизу */
+    .dashed-separator {
+      width: 100%;
+      border: none;
+      border-top: 2px dashed #757575;
+      margin: 7px 0;
+      height: 0;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <h2>Расчет расхода электроэнергии</h2>
+  <input type="number" id="act1" placeholder="Активная! Последнее показание!" inputmode="decimal">
+  <input type="number" id="act2" placeholder="Активная! Первое показание!" inputmode="decimal">
+  <hr class="dashed-separator">
+  <input type="number" id="react1" placeholder="Реактивная! Последнее показание!" inputmode="decimal">
+  <input type="number" id="react2" placeholder="Реактивная! Первое показание!" inputmode="decimal">
+  <button onclick="calculate()">Результат для блока № 1</button>
+  <div id="result"></div>
+  <script>
+    function calculate() {
+      const act1 = document.getElementById('act1').value.trim();
+      const act2 = document.getElementById('act2').value.trim();
+      const react1 = document.getElementById('react1').value.trim();
+      const react2 = document.getElementById('react2').value.trim();
+      const resultDiv = document.getElementById('result');
+      let output = "";
+
+      const activReady = act1 !== "" && act2 !== "";
+      const reactReady = react1 !== "" && react2 !== "";
+
+      // Если обе пары пусты или есть только по одному числу в паре
+      if (
+        (!activReady && !reactReady) ||
+        (act1 !== "" && act2 === "") || (act2 !== "" && act1 === "") ||
+        (react1 !== "" && react2 === "") || (react2 !== "" && react1 === "")
+      ) {
+        resultDiv.textContent = "";
+        return;
+      }
+
+      // Только активная
+      if (activReady && !reactReady) {
+        const active = Math.round(((Number(act1) - Number(act2)) * 800) * 1000) / 1000;
+        resultDiv.innerHTML = `Активная = ${active}`;
+        return;
+      }
+
+      // Только реактивная
+      if (reactReady && !activReady) {
+        const reactive = Math.round(((Number(react1) - Number(react2)) * 1384) * 1000) / 1000;
+        resultDiv.innerHTML = `Реактивная = ${reactive}`;
+        return;
+      }
+
+      // Обе пары
+      if (activReady && reactReady) {
+        const activeDelta = Number(act1) - Number(act2);
+        const reactiveDelta = Number(react1) - Number(react2);
+        const active = Math.round((activeDelta * 800) * 1000) / 1000;
+        const reactive = Math.round((reactiveDelta * 1384) * 1000) / 1000;
+        const hypotenuse = Math.sqrt(active * active + reactive * reactive);
+        let cosPhi = hypotenuse !== 0 ? (active / hypotenuse).toFixed(3) : "-";
+        output += `Активная = ${active}<br>`;
+        output += `Реактивная = ${reactive}<br>`;
+        output += `Cos = ${cosPhi}`;
+        resultDiv.innerHTML = output;
+        return;
+      }
+    }
+  </script>
+</body>
+</html>

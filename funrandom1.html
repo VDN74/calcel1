@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Рандомник01</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 400px;
+      margin: 30px auto;
+      padding: 10px;
+      background: #f3f3f3;
+    }
+    input {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px 5px;
+      font-size: 1rem;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      background: #71b371;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 12px;
+      background: #fff;
+      font-size: 1.2rem;
+      text-align: center;
+      min-height: 32px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    #counter {
+      margin-top: 10px;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>Перемешивание до совпадения!</h2>
+  
+  <input type="text" id="strInput" placeholder="Введите строку">
+  <button id="shuffleBtn">Перемешать</button>
+  <div id="counter"></div>
+  <div id="result"></div>
+
+  <script>
+    // Быстрое перемешивание Фишера-Йетса
+    function shuffleString(str) {
+      let arr = str.split('');
+      for (let i = arr.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr.join('');
+    }
+
+    document.getElementById('shuffleBtn').onclick = function() {
+      let original = document.getElementById('strInput').value;
+      let resultDiv = document.getElementById('result');
+      let counterDiv = document.getElementById('counter');
+      
+      resultDiv.textContent = "";
+      counterDiv.textContent = "";
+
+      if (original === "") {
+        resultDiv.textContent = "Пожалуйста, введите строку!";
+        return;
+      }
+      if (original.length < 2) {
+        resultDiv.textContent = "Строка должна содержать хотя бы 2 символа!";
+        return;
+      }
+
+      let attempts = 0;
+      let shuffled = "";
+      let maxAttempts = 11000000; // Ограничение на количество попыток
+
+      document.getElementById('shuffleBtn').disabled = true;
+
+      // Основной цикл (очень быстро)
+      do {
+        attempts++;
+        shuffled = shuffleString(original);
+        if (shuffled === original) break;
+      } while (attempts < maxAttempts);
+
+      document.getElementById('shuffleBtn').disabled = false;
+      counterDiv.textContent = "Кол-во перемешиваний: " + attempts;
+
+      if (shuffled === original) {
+        resultDiv.textContent = "Полное совпадение, поздравляю!";
+      } else {
+        resultDiv.textContent = "Слишком много попыток, совпадение не найдено (лимит " + maxAttempts + ").";
+      }
+    }
+  </script>
+</body>
+</html>
