@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Змейка</title>
+  <style>
+    body { background: #222; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+    h1 { margin-top:20px; }
+    #game-container { user-select: none; margin: 10px; }
+    #score, #game-over { margin-top: 15px; font-size: 1.2em;}
+    #controls { margin: 20px 0 0 0; display: flex; flex-direction: column; align-items: center;}
+    .row { display: flex; flex-direction: row; }
+    button {
+      width: 50px; height: 50px;
+      margin: 3px; border: none; background: #444; color: #fff; font-size: 1.4em; cursor: pointer; border-radius: 6px;
+      transition: background 0.2s;
+    }
+    button:active { background: #888; }
+    #start-panel { margin-bottom: 20px; }
+    #snake-canvas { background: #111; display: block; margin: auto; border: 2px solid #2b2b2b; }
+    #segments { font-weight: bold; }
+    label, input { font-size: 1.1em;}
+  </style>
+</head>
+<body>
+  <h1>Змейка</h1>
+  <div id="start-panel">
+    <label for="speed-input">Скорость (1–5): </label>
+    <input type="number" id="speed-input" min="1" max="5" step="1" value="2" style="width:40px">
+    <button onclick="startGame()">Старт</button>
+  </div>
+  <div id="game-container">
+    <canvas id="snake-canvas" width="350" height="350"></canvas>
+    <div id="score">Длина: <span id="segments">1</span></div>
+    <div id="game-over"></div>
+  </div>
+  <div id="controls">
+    <div class="row"><button id="up">&uarr;</button></div>
+    <div class="row">
+      <button id="left">&larr;</button>
+      <button id="down">&darr;</button>
+      <button id="right">&rarr;</button>
+    </div>
+  </div>
+
+<script>
+const canvas = document.getElementById("snake-canvas");
+const ctx = canvas.getContext('2d');
+const gridSize = 14; // игровое поле 14x14 клеток
+const tileSize = 25;
+let snake, direction, nextDirection, food, gameInterval;
+let speed = 2; // по умолчанию
+let gameActive = false;
+let segmentsCount = 1;
+let lastScore = 0;
+
+function resetGame() {
+  // Начальная позиция змейки — по центру
+  snake = [{ x: Math.floor(gridSize/2), y: Math.floor(gridSize/2) }];
+  direction = "right";
+  nextDirection = "right";
+  segmentsCount = 1;
+  placeFood();
+  gameActive = true;
+  document.getElementById("segments").textContent = 1;
+  document.getElementById("game-over").textContent = "";
+}
+
+function startGame() {
+  let inp = parseInt(document.getElementById("speed-input").value);
+  if (isNaN(inp) || inp < 1 || inp > 5) inp = 2;
+  speed = inp;
+  resetGame();
+  clearInterval(gameInterval);
+  // Скорости: 1 – медленно (250 мс тика), 5 – быстро (70 мс тика)
+  const tick = 260 - (speed-1)*48; // шаг скорости
+  draw();
+  gameInterval = setInterval(gameTick, tick);
+}
+
+function placeFood() {
+  while (true) {
+    const fx = Math.floor(Math.random()*gridSize);
+    const fy = Math.floor(Math.random()*gridSize);
+    if (!snake.some(seg => seg.x===fx && seg.y===fy)) { food = {x:fx, y:fy}; break;}
+  }
+}
+
+function gameTick() {
+  // direction меняем только между тиком
+  direction = nextDirection;
+  let head = {...snake[0]};
+  if (direction==="up") head.y--;
+  if (direction==="down") head.y++;
+  if (direction==="left") head.x--;
+  if (direction==="right") head.x++;
+
+  // сквозь стены (телепорт)
+  if (head.x < 0) head.x = gridSize-1;
+  if (head.x >= gridSize) head.x = 0;
+  if (head.y < 0) head.y = gridSize-1;
+  if (head.y >= gridSize) head.y = 0;
+
+  // столкновение с собой?
+  if (snake.some(seg => seg.x===head.x && seg.y===head.y)) {
+    endGame();
+    return;
+  }
+
+  snake.unshift(head);
+  // если на еде, растем, иначе — срезаем хвост
+  if (head.x===food.x && head.y===food.y) {
+    segmentsCount++;
+    document.getElementById("segments").textContent = segmentsCount;
+    placeFood();
+  }
+  else {
+    snake.pop();
+  }
+
+  draw();
+}
+
+function draw() {
+  // очистка
+  ctx.fillStyle = "#111";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // еда
+  ctx.fillStyle = "#ff3131";
+  ctx.fillRect(food.x*tileSize+3, food.y*tileSize+3, tileSize-6, tileSize-6);
+
+  // змейка
+  snake.forEach((seg,i) => {
+    ctx.fillStyle = i===0 ? "#3fffcf" : "#18c768";
+    ctx.fillRect(seg.x*tileSize+2, seg.y*tileSize+2, tileSize-4, tileSize-4);
+  });
+}
+
+function endGame() {
+  gameActive = false;
+  clearInterval(gameInterval);
+  lastScore = segmentsCount * speed;
+  document.getElementById("game-over").textContent = "Игра закончена! Ваш счёт: " + lastScore + " (" + segmentsCount + " x " + speed + ")";
+}
+
+// Управление
+function setDirection(dir) {
+  // не разрешаем разворот!
+  if (!gameActive) return;
+  if (dir==="up" && direction!=="down") nextDirection="up";
+  if (dir==="down" && direction!=="up") nextDirection="down";
+  if (dir==="left" && direction!=="right") nextDirection="left";
+  if (dir==="right" && direction!=="left") nextDirection="right";
+}
+
+// Клавиши
+document.addEventListener("keydown", e=>{
+  if(!gameActive) return;
+  if (e.key==='ArrowUp') setDirection("up");
+  if (e.key==='ArrowDown') setDirection("down");
+  if (e.key==='ArrowLeft') setDirection("left");
+  if (e.key==='ArrowRight') setDirection("right");
+});
+// Кнопки
+document.getElementById("up").onclick=()=>setDirection("up");
+document.getElementById("down").onclick=()=>setDirection("down");
+document.getElementById("left").onclick=()=>setDirection("left");
+document.getElementById("right").onclick=()=>setDirection("right");
+
+// Первый запуск: поле отображается пустым с одной клеткой
+resetGame();
+draw();
+
+</script>
+</body>
+</html>
